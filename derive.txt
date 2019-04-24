@@ -2,26 +2,6 @@
 use datatest;
 -- ---------------------------------------------------
 
--- ---------------------------------------------------
--- Stuff to do locally:
--- ---------------------------------------------------
--- UPDATE jail_records SET incarceration_id = NULL;
--- CREATE INDEX idx_jr_id ON jail_records (id);
--- CREATE INDEX idx_jr_rdjid ON jail_records (jail_id, record_date);
--- CREATE INDEX idx_jr_njidrd ON jail_records (name, jail_id, record_date);
--- CREATE INDEX jr_record_date ON jail_records (record_date);
--- ---------------------------------------------------
-
--- ---------------------------------------------------
--- Stuff to do on jaildata server before running:
--- ---------------------------------------------------
--- ALTER TABLE jail_records ADD COLUMN record_date DATE;
--- Add/modify indexes in Laravel/Migration files to match the ones in this and loops.txt
-	-- jail_records: INDEX(record_date), INDEX(jail_id) , INDEX(jail_id,incarceration_id) , INDEX(jail_id, record_date), INDEX(name, jail_id, record_date)
-	-- incarcerations: INDEX(jail_id, name), INDEX(last_found_date)
--- rename jet_tables to just tables in the loops.txt file before running
--- ---------------------------------------------------
-
 
 -- DROP TABLE jet_imputed_dates;
 create table IF NOT EXISTS jet_imputed_dates (id int not null auto_increment primary key, incarceration_id int, imputed_date DATE);
@@ -188,11 +168,6 @@ END//
 	SELECT '-----------------------------------------------------' AS '';
 
 
-
-/*
-Durham		BEGIN: 2019-04-10 13:35:59		END: 2019-04-10 13:56:41	20m42s
-Guilford	BEGIN: 2019-04-10 13:58:04		END: 2019-04-10 15:18:48	80m50s
-*/
 
 
 
