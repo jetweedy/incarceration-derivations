@@ -7,12 +7,33 @@ use datatest;
 create table IF NOT EXISTS jet_imputed_dates (id int not null auto_increment primary key, incarceration_id int, imputed_date DATE);
 
 -- DROP TABLE jet_incarcerations;
-create table IF NOT EXISTS jet_incarcerations (id int not null auto_increment primary key, jail_id int, name varchar(200), created_at DATETIME, first_found_date varchar(10), last_found_date varchar(10), INDEX(id), INDEX(jail_id, name), INDEX(last_found_date));
+create table IF NOT EXISTS jet_incarcerations (id int not null auto_increment primary key
+		, jail_id int, name varchar(200), first_found_date DATE, last_found_date DATE
+		, dob DATE, age INT, sex VARCHAR(255), height INT, race VARCHAR(255)
+		, confined_date VARCHAR(255), release_date VARCHAR(255), non_court TINYINT
+		, address VARCHAR(255) , days_in_jail INT, scrape_id INT
+		, most_recent_age INT
+		, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		, updated_at TIMESTAMP
+		, INDEX(id), INDEX(jail_id, name), INDEX(last_found_date)
+	);
+
+-- UPDATE jail_records SET record_date = DATE(created_at) WHERE record_date is NULL;
+
+-- DELETE FROM jet_incarcerations;
+
+-- UPDATE jail_records SET incarceration_id = NULL;
+
 
 DELIMITER //
 
 DROP PROCEDURE IF EXISTS handleJailRecord;
-CREATE PROCEDURE handleJailRecord(IN j_id INT, IN p_name varchar(200), IN p_date DATE)
+CREATE PROCEDURE handleJailRecord(IN j_id INT, IN p_name varchar(200), IN p_date DATE
+	, IN p_dob DATE, IN p_age INT, IN p_sex VARCHAR(255), IN p_height INT, IN p_race VARCHAR(255)
+	, IN p_confined_date VARCHAR(255), IN p_release_date VARCHAR(255)
+	, IN p_non_court TINYINT, IN p_address VARCHAR(255)
+	, IN p_days_in_jail INT, IN p_scrape_id INT
+)
 BEGIN
 	DECLARE done INT DEFAULT FALSE;
 	DECLARE i_found BOOLEAN DEFAULT FALSE;
@@ -80,8 +101,16 @@ BEGIN
 	CLOSE getIncs;
 
 	IF NOT i_found THEN
-		INSERT INTO jet_incarcerations (jail_id, name, first_found_date, last_found_date) VALUES (j_id, p_name, p_date, p_date);
-		UPDATE jail_records SET incarceration_id = LAST_INSERT_ID() WHERE id = (name = p_name) AND (jail_id = j_id) AND (record_date = p_date);
+		INSERT INTO jet_incarcerations (name, jail_id, first_found_date, last_found_date
+			, dob, age, sex, height, race, confined_date, release_date
+			, non_court, address, days_in_jail, most_recent_age, scrape_id
+		) VALUES (p_name, j_id, p_date, p_date
+			, p_dob, p_age, p_sex, p_height, p_race, p_confined_date, p_release_date
+			, p_non_court, p_address, p_days_in_jail, p_age, p_scrape_id
+		);
+		UPDATE jail_records 
+			SET incarceration_id = LAST_INSERT_ID()
+			WHERE id = (name = p_name) AND (jail_id = j_id) AND (record_date = p_date);
 --		SELECT concat('    +----> CREATING: ', LAST_INSERT_ID(), ': ', p_name, ' (last_found_date: ', p_date, ')', " | ", p_date) as '';
 	END IF;
 	
@@ -93,26 +122,53 @@ CREATE PROCEDURE processJailRecords(IN mindate DATE, IN j_id INT)
 BEGIN
 	DECLARE done INT DEFAULT FALSE;
 	DECLARE r_id INT;
+
+	DECLARE r_dob DATE;
+	DECLARE r_age INT;
+	DECLARE r_sex VARCHAR(255);
+	DECLARE r_height INT;
+	DECLARE r_race VARCHAR(255);
+
+	DECLARE r_confined_date VARCHAR(255);
+	DECLARE r_release_date VARCHAR(255);
+	DECLARE r_non_court TINYINT;
+	DECLARE r_address VARCHAR(255);
+	DECLARE r_days_in_jail INT;
+	DECLARE r_most_recent_age INT;
+	DECLARE r_scrape_id INT;
+
+
+	
 	DECLARE r_name VARCHAR(200);
 	DECLARE r_date DATE;
 	DECLARE cursorRecords CURSOR FOR 
 		SELECT name, record_date
+			, dob, age, sex, height, race
+			, confined_date, release_date, non_court, address, days_in_jail, scrape_id
 		FROM jail_records
 		WHERE (jail_id = j_id)
-		AND (incarceration_id is null)
+--		AND (incarceration_id is null)
 		AND (record_date >= mindate)
 		GROUP BY name, record_date
+			, dob, age, sex, height, race
+			, confined_date, release_date, non_court, address, days_in_jail, scrape_id
 		order by name, record_date
 		;
 	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done= TRUE;
 	OPEN cursorRecords;
 	read_loop: LOOP
-		FETCH cursorRecords INTO r_name, r_date;
+		FETCH cursorRecords INTO r_name, r_date
+			, r_dob, r_age, r_sex, r_height, r_race
+			, r_confined_date, r_release_date, r_non_court, r_address, r_days_in_jail, r_scrape_id
+			;
 		IF done THEN
 			LEAVE read_loop;
 		END IF;
 			SELECT concat('  Processing RECORD: ', r_name, ' (', r_date, ')') AS '';
-		call handleJailRecord(j_id, r_name, r_date);
+		call handleJailRecord(j_id, r_name, r_date
+				, r_dob, r_age, r_sex, r_height, r_race
+				, r_confined_date, r_release_date, r_non_court, r_address, r_days_in_jail, r_scrape_id
+			);
 	END LOOP;
 	CLOSE cursorRecords;
 END//
@@ -141,13 +197,17 @@ BEGIN
 	CLOSE cursorJails;
 END//
 
--- -----------------------------------------------------------------------------
 
--- UPDATE jail_records SET record_date = DATE(created_at) WHERE record_date is NULL;
 
--- -----------------------------------------------------------------------------
 
- DELETE FROM jet_incarcerations;
+
+
+
+
+
+
+
+
 
 	SELECT '-----------------------------------------------------' AS '';
 	SELECT concat('BEGIN: ', NOW()) AS '';
