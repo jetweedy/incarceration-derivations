@@ -3,10 +3,10 @@ use datatest;
 -- ---------------------------------------------------
 
 
--- DROP TABLE jet_imputed_dates;
+ DROP TABLE jet_imputed_dates;
 create table IF NOT EXISTS jet_imputed_dates (id int not null auto_increment primary key, incarceration_id int, imputed_date DATE);
 
--- DROP TABLE jet_incarcerations;
+ DROP TABLE jet_incarcerations;
 create table IF NOT EXISTS jet_incarcerations (id int not null auto_increment primary key
 		, jail_id int, name varchar(200), first_found_date DATE, last_found_date DATE
 		, dob DATE, age INT, sex VARCHAR(255), height INT, race VARCHAR(255)
@@ -47,6 +47,11 @@ BEGIN
 		SELECT id, first_found_date, last_found_date
 		FROM jet_incarcerations 
 		WHERE (name = p_name) AND (jail_id = j_id)
+			AND (
+				(age = p_age) OR (age = (p_age + 1))
+				OR
+				(dob = p_dob)
+			)
 		ORDER BY last_found_date DESC
 		LIMIT 1
 		;
@@ -212,12 +217,12 @@ END//
 	SELECT '-----------------------------------------------------' AS '';
 	SELECT concat('BEGIN: ', NOW()) AS '';
 	SELECT '-----------------------------------------------------' AS '';
- call processJailRecords('2018-01-01', 1); -- anson
+-- call processJailRecords('2019-04-01', 1); -- anson
 -- call processJailRecords('2018-01-01', 11); -- durham
 -- call processJailRecords('2018-01-01', 13); -- guilford
 -- call processJailRecords('2018-01-01', 12); -- forsyth
 -- call processJailRecords('2018-01-01', 21); -- orange
--- call processJailRecords('2018-01-01', 25); -- wake
+ call processJailRecords('2019-04-01', 25); -- wake
 -- call processJailRecords('2018-01-01', 31);	-- cumberland
 -- call processJails('2019-03-01');
 -- SELECT * FROM jail_records ORDER BY name, created_at;
