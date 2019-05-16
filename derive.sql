@@ -77,7 +77,7 @@ BEGIN
 			UPDATE jail_records SET incarceration_id = i_id WHERE (name = p_name) AND (jail_id = j_id);
 
 		ELSEIF 
-			(i_lfd > (p_date - INTERVAL 5 DAY) )
+			(i_lfd > (p_date - INTERVAL 14 DAY) )
 				AND		
 			(NOT EXISTS(
 				SELECT id from jail_records
