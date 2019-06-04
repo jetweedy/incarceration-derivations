@@ -1,0 +1,20 @@
+
+PUTTY (connect to jaildata)
+
+mysql _______________ -u_______________ --p_____________________
+
+mysqldump _______________ --no-create-info --skip-triggers --no-create-db -u_______________ -p_____________________ jail_records > /project/bigdata/public/jetweedy/jail_records.sql
+
+FILEZILLA (connect to jaildata)
+
+Download the .sql file
+
+LOCAL LINUX w/MYSQL:
+
+sudo mysql datatest < seed.sql
+sudo mysql datatest < jail_records.sql 
+sudo mysql datatest < derive.sql
+sudo mysql datatest < check.sql
+
+
+

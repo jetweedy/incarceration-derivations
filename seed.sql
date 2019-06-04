@@ -2,8 +2,8 @@
 use datatest;
 -- ---------------------------------------------------
 
+ drop table jails;
  create table IF NOT EXISTS jails (id int, county varchar(20));
-/*
  INSERT INTO jails (id, county) VALUES (1, 'anson');
  INSERT INTO jails (id, county) VALUES (13, 'guilford');
  INSERT INTO jails (id, county) VALUES (25, 'wake');
@@ -11,8 +11,21 @@ use datatest;
  INSERT INTO jails (id, county) VALUES (12, 'forsyth');
  INSERT INTO jails (id, county) VALUES (21, 'orange');
  INSERT INTO jails (id, county) VALUES (31, 'cumberland');
-*/
 
+ DROP TABLE incarcerations;
+create table IF NOT EXISTS incarcerations (id int not null auto_increment primary key
+		, jail_id int, name varchar(200), first_found_date DATE, last_found_date DATE
+		, dob DATE, age INT, sex VARCHAR(255), height INT, race VARCHAR(255)
+		, confined_date VARCHAR(255), release_date VARCHAR(255), non_court TINYINT
+		, address VARCHAR(255) , days_in_jail INT, scrape_id INT
+		, most_recent_age INT
+		, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		, updated_at TIMESTAMP
+		, INDEX(id), INDEX(jail_id, name), INDEX(last_found_date)
+	);
+	
+
+-- drop table jail_records;
  create table IF NOT EXISTS jail_records (
 	id int
  , jail_id int
@@ -34,13 +47,13 @@ use datatest;
  , updated_at TIMESTAMP
  , incarceration_id int
  , scrape_id int
--- , record_date DATE
+ , record_date DATE
  , INDEX(id)
  , INDEX(jail_id)
  , INDEX(jail_id,incarceration_id)
--- , INDEX(name, jail_id,record_date)
--- , INDEX(jail_id,record_date)
--- , INDEX(record_date)
+ , INDEX(name, jail_id,record_date)
+ , INDEX(jail_id,record_date)
+ , INDEX(record_date)
  )
   ;
 

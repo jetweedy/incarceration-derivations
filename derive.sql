@@ -3,25 +3,10 @@ use datatest;
 -- ---------------------------------------------------
 
 
- DROP TABLE jet_imputed_dates;
-create table IF NOT EXISTS jet_imputed_dates (id int not null auto_increment primary key, incarceration_id int, imputed_date DATE);
 
- DROP TABLE jet_incarcerations;
-create table IF NOT EXISTS jet_incarcerations (id int not null auto_increment primary key
-		, jail_id int, name varchar(200), first_found_date DATE, last_found_date DATE
-		, dob DATE, age INT, sex VARCHAR(255), height INT, race VARCHAR(255)
-		, confined_date VARCHAR(255), release_date VARCHAR(255), non_court TINYINT
-		, address VARCHAR(255) , days_in_jail INT, scrape_id INT
-		, most_recent_age INT
-		, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		, updated_at TIMESTAMP
-		, INDEX(id), INDEX(jail_id, name), INDEX(last_found_date)
-	);
 
 -- UPDATE jail_records SET record_date = DATE(created_at) WHERE record_date is NULL;
-
--- DELETE FROM jet_incarcerations;
-
+-- DELETE FROM incarcerations;
 -- UPDATE jail_records SET incarceration_id = NULL;
 
 
@@ -45,7 +30,7 @@ BEGIN
 
 	DECLARE getIncs CURSOR FOR 
 		SELECT id, first_found_date, last_found_date
-		FROM jet_incarcerations 
+		FROM incarcerations 
 		WHERE (name = p_name) AND (jail_id = j_id)
 			AND (
 				(age = p_age) OR (age = (p_age + 1))
@@ -73,7 +58,7 @@ BEGIN
 
 		ELSEIF (i_lfd = (p_date - INTERVAL 1 DAY)) THEN
 			SET i_found = TRUE;
-			UPDATE jet_incarcerations SET last_found_date = p_date WHERE (id = i_id);
+			UPDATE incarcerations SET last_found_date = p_date WHERE (id = i_id);
 			UPDATE jail_records SET incarceration_id = i_id WHERE (name = p_name) AND (jail_id = j_id);
 
 		ELSEIF 
@@ -87,7 +72,7 @@ BEGIN
 			THEN
 				SET i_found = TRUE;
 				UPDATE jail_records SET incarceration_id = i_id WHERE (name = p_name) AND (jail_id = j_id) AND (record_date = p_date);
-				UPDATE jet_incarcerations SET last_found_date = p_date WHERE (id = i_id);
+				UPDATE incarcerations SET last_found_date = p_date WHERE (id = i_id);
 				SET i_lastdate = i_lfd;
 				each_loop: LOOP
 					IF (i_lastdate is NULL) THEN
@@ -97,7 +82,7 @@ BEGIN
 					IF (i_lastdate >= p_date) THEN
 						LEAVE each_loop;
 					END IF;
-					INSERT INTO jet_imputed_dates (incarceration_id, imputed_date) VALUES (i_id, i_lastdate);
+					INSERT INTO imputed_dates (incarceration_id, imputed_date) VALUES (i_id, i_lastdate);
 --					SELECT concat('    o----> IMPUTING: ', p_name, ' (date: ', i_lastdate, ')') as '';
 				END LOOP;
 
@@ -106,7 +91,7 @@ BEGIN
 	CLOSE getIncs;
 
 	IF NOT i_found THEN
-		INSERT INTO jet_incarcerations (name, jail_id, first_found_date, last_found_date
+		INSERT INTO incarcerations (name, jail_id, first_found_date, last_found_date
 			, dob, age, sex, height, race, confined_date, release_date
 			, non_court, address, days_in_jail, most_recent_age, scrape_id
 		) VALUES (p_name, j_id, p_date, p_date
@@ -213,21 +198,21 @@ END//
 
 
 
-
 	SELECT '-----------------------------------------------------' AS '';
 	SELECT concat('BEGIN: ', NOW()) AS '';
 	SELECT '-----------------------------------------------------' AS '';
+ call processJailRecords('2019-04-01', @jailid); -- anson
 -- call processJailRecords('2019-04-01', 1); -- anson
 -- call processJailRecords('2018-01-01', 11); -- durham
 -- call processJailRecords('2018-01-01', 13); -- guilford
 -- call processJailRecords('2018-01-01', 12); -- forsyth
 -- call processJailRecords('2018-01-01', 21); -- orange
- call processJailRecords('2019-04-01', 25); -- wake
+-- call processJailRecords('2019-04-01', 25); -- wake
 -- call processJailRecords('2018-01-01', 31);	-- cumberland
 -- call processJails('2019-03-01');
 -- SELECT * FROM jail_records ORDER BY name, created_at;
--- SELECT * FROM jet_incarcerations ORDER BY name, first_found_date;
--- SELECT * FROM jet_imputed_dates ORDER BY incarceration_id;
+-- SELECT * FROM incarcerations ORDER BY name, first_found_date;
+-- SELECT * FROM imputed_dates ORDER BY incarceration_id;
 	SELECT '-----------------------------------------------------' AS '';
 	SELECT concat('END: ', NOW()) AS '';
 	SELECT '-----------------------------------------------------' AS '';
