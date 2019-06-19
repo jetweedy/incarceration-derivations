@@ -18,7 +18,8 @@ BEGIN
 		WHERE (id <> p_id) AND (name = p_name) AND (jail_id = p_jail_id)
 		AND (
 			(p_ffd BETWEEN first_found_date AND last_found_date)
-		AND
+--			AND		-- only duplicated BETWEEN
+			OR		-- ANY duplicates
 			(p_lfd BETWEEN first_found_date AND last_found_date)
 		)
 		;
@@ -30,6 +31,7 @@ BEGIN
 			LEAVE read_loop;
 		END IF;
 		SELECT '------------------------------------------------------------------' AS '';
+--		DELETE FROM incarcerations WHERE id = p_id;
 		SELECT concat('Found Duplicate: (Jail ID: ', p_jail_id , ') ', p_id, ": ", p_name, " | ", p_ffd, " - ", p_lfd) AS '';
 		SELECT concat('Inside of Range: (Jail ID: ', p_jail_id , ') ', inc_id, ": ", inc_name, " | ", inc_ffd, " - ", inc_lfd) AS '';
 	END LOOP;
@@ -96,8 +98,10 @@ END//
 SELECT '-----------------------------------------------------' AS '';
 SELECT concat('BEGIN: ', NOW()) AS '';
 SELECT '-----------------------------------------------------' AS '';
--- call checkIncarcerations(1);
-call runIncChecks();
+ call checkIncarcerations(19);	-- Mecklenburg
+-- call checkIncarcerations(29);	-- Alamance
+-- call checkIncarcerations(31);	-- Cumberland
+-- call runIncChecks();
 SELECT '-----------------------------------------------------' AS '';
 SELECT concat('END: ', NOW()) AS '';
 SELECT '-----------------------------------------------------' AS '';
