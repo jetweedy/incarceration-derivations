@@ -2,7 +2,7 @@
 use datatest;
 -- ---------------------------------------------------
 
- drop table jails;
+ drop table if exists jails;
  create table IF NOT EXISTS jails (id int, county varchar(20));
  INSERT INTO jails (id, county) VALUES (1, 'anson');
  INSERT INTO jails (id, county) VALUES (13, 'guilford');
@@ -12,20 +12,35 @@ use datatest;
  INSERT INTO jails (id, county) VALUES (21, 'orange');
  INSERT INTO jails (id, county) VALUES (31, 'cumberland');
 
- DROP TABLE incarcerations;
+ DROP TABLE if exists incarcerations;
 create table IF NOT EXISTS incarcerations (id int not null auto_increment primary key
-		, jail_id int, name varchar(200), first_found_date DATE, last_found_date DATE
-		, dob DATE, age INT, sex VARCHAR(255), height INT, race VARCHAR(255)
-		, confined_date VARCHAR(255), release_date VARCHAR(255), non_court TINYINT
-		, address VARCHAR(255) , days_in_jail INT, scrape_id INT
+		, name varchar(200)
+		, dob DATE
+		, age INT
+		, jail_id int
+		, court_case_id int
+		, court_match_date date
+		, first_found_date DATE
+		, last_found_date DATE
+		, sex VARCHAR(255)
+		, height INT
+		, race VARCHAR(255)
+		, confined_date VARCHAR(255)
+		, release_date VARCHAR(255)
+		, non_court TINYINT
+		, address VARCHAR(255) 
+		, days_in_jail INT
+		, created_at DATETIME NULL
+		, updated_at TIMESTAMP NULL
 		, most_recent_age INT
-		, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		, updated_at TIMESTAMP
+		, state_prison_lookup json
+		, state_prison_dob date
+		, prison_match_date date
+		, scrape_id INT
 		, INDEX(id), INDEX(jail_id, name), INDEX(last_found_date)
 	);
-	
 
--- drop table jail_records;
+-- drop table if exists jail_records;
  create table IF NOT EXISTS jail_records (
 	id int
  , jail_id int
@@ -43,8 +58,8 @@ create table IF NOT EXISTS incarcerations (id int not null auto_increment primar
  , address varchar(255)
  , days_in_jail int
  , other_data varchar(255)
- , created_at DATETIME
- , updated_at TIMESTAMP
+ , created_at DATETIME NULL
+ , updated_at TIMESTAMP NULL
  , incarceration_id int
  , scrape_id int
  , record_date DATE

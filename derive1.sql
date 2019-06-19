@@ -2,11 +2,13 @@
 use datatest;
 -- ---------------------------------------------------
 
+
+
+
 -- UPDATE jail_records SET record_date = DATE(created_at) WHERE record_date is NULL;
 -- DELETE FROM incarcerations;
 -- UPDATE jail_records SET incarceration_id = NULL;
--- innodb_lock_wait_timeout=500
--- 
+
 
 DELIMITER //
 
@@ -56,7 +58,7 @@ BEGIN
 
 		ELSEIF (i_lfd = (p_date - INTERVAL 1 DAY)) THEN
 			SET i_found = TRUE;
-			UPDATE incarcerations SET last_found_date = p_date, updated_at = NOW() WHERE (id = i_id);
+			UPDATE incarcerations SET last_found_date = p_date WHERE (id = i_id);
 			UPDATE jail_records SET incarceration_id = i_id WHERE (name = p_name) AND (jail_id = j_id);
 
 		ELSEIF 
@@ -70,7 +72,7 @@ BEGIN
 			THEN
 				SET i_found = TRUE;
 				UPDATE jail_records SET incarceration_id = i_id WHERE (name = p_name) AND (jail_id = j_id) AND (record_date = p_date);
-				UPDATE incarcerations SET last_found_date = p_date, updated_at = NOW() WHERE (id = i_id);
+				UPDATE incarcerations SET last_found_date = p_date WHERE (id = i_id);
 				SET i_lastdate = i_lfd;
 				each_loop: LOOP
 					IF (i_lastdate is NULL) THEN
@@ -91,10 +93,10 @@ BEGIN
 	IF NOT i_found THEN
 		INSERT INTO incarcerations (name, jail_id, first_found_date, last_found_date
 			, dob, age, sex, height, race, confined_date, release_date
-			, non_court, address, days_in_jail, most_recent_age, scrape_id, created_at, updated_at
+			, non_court, address, days_in_jail, most_recent_age, scrape_id
 		) VALUES (p_name, j_id, p_date, p_date
 			, p_dob, p_age, p_sex, p_height, p_race, p_confined_date, p_release_date
-			, p_non_court, p_address, p_days_in_jail, p_age, p_scrape_id, NOW(), NOW()
+			, p_non_court, p_address, p_days_in_jail, p_age, p_scrape_id
 		);
 		UPDATE jail_records 
 			SET incarceration_id = LAST_INSERT_ID()
@@ -125,6 +127,8 @@ BEGIN
 	DECLARE r_most_recent_age INT;
 	DECLARE r_scrape_id INT;
 
+
+	
 	DECLARE r_name VARCHAR(200);
 	DECLARE r_date DATE;
 	DECLARE cursorRecords CURSOR FOR 
@@ -133,7 +137,7 @@ BEGIN
 			, confined_date, release_date, non_court, address, days_in_jail, scrape_id
 		FROM jail_records
 		WHERE (jail_id = j_id)
-		AND (incarceration_id is null)
+--		AND (incarceration_id is null)
 		AND (record_date >= mindate)
 		GROUP BY name, record_date
 			, dob, age, sex, height, race
@@ -197,7 +201,7 @@ END//
 	SELECT '-----------------------------------------------------' AS '';
 	SELECT concat('BEGIN: ', NOW()) AS '';
 	SELECT '-----------------------------------------------------' AS '';
- call processJailRecords('2018-01-01', 1);
+ call processJailRecords('2019-04-01', @jailid); -- anson
 -- call processJailRecords('2019-04-01', 1); -- anson
 -- call processJailRecords('2018-01-01', 11); -- durham
 -- call processJailRecords('2018-01-01', 13); -- guilford
