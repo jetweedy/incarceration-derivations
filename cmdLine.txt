@@ -16,5 +16,13 @@ sudo mysql datatest < jail_records.sql
 sudo mysql datatest < derive.sql
 sudo mysql datatest < check.sql
 
+----------------------------------------------------------------
+TESTING check.sql:
+----------------------------------------------------------------
+sudo mysql
+	use datatest;
+	delete from incarcerations;
+sudo mysql datatest < ../incarcerations.sql
+sudo mysql datatest < check.sql
 
 

@@ -4,8 +4,43 @@ use datatest;
 
 DELIMITER //
 
-DROP PROCEDURE IF EXISTS compareIncarcerations;
-CREATE PROCEDURE compareIncarcerations(IN p_id INT, IN p_jail_id INT, IN p_name VARCHAR(200), IN p_ffd DATE, IN p_lfd DATE)
+DROP PROCEDURE IF EXISTS compareOverlappingIncarcerations;
+CREATE PROCEDURE compareOverlappingIncarcerations(IN p_id INT, IN p_jail_id INT, IN p_name VARCHAR(200), IN p_ffd DATE, IN p_lfd DATE)
+BEGIN
+	DECLARE done INT DEFAULT FALSE;
+	DECLARE inc_id INT;
+	DECLARE inc_ffd DATE;
+	DECLARE inc_lfd DATE;
+	DECLARE inc_name VARCHAR(100);
+	DECLARE cursorComps CURSOR FOR 
+		SELECT id, name, first_found_date, last_found_date 
+		FROM incarcerations
+		WHERE (id <> p_id) AND (name = p_name) AND (jail_id = p_jail_id)
+		AND (
+			(p_ffd < first_found_date)
+			AND
+			(p_lfd BETWEEN first_found_date AND last_found_date)
+		)
+		;
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done= TRUE;
+	OPEN cursorComps;
+	read_loop: LOOP
+		FETCH cursorComps INTO inc_id, inc_name, inc_ffd, inc_lfd;
+		IF done THEN
+			LEAVE read_loop;
+		END IF;
+		SELECT '------------------------------------------------------------------' AS '';
+		UPDATE incarcerations SET last_found_date = inc_lfd WHERE (id = p_id);
+		DELETE FROM incarcerations WHERE id = inc_id;
+		SELECT concat('Updating: (Jail ID: ', p_jail_id , ') ', p_id, ": ", p_name, " | ", p_ffd, " - ", p_lfd) AS '';
+		SELECT concat('Deleting: (Jail ID: ', p_jail_id , ') ', inc_id, ": ", inc_name, " | ", inc_ffd, " - ", inc_lfd) AS '';
+	END LOOP;
+	CLOSE cursorComps;
+END//
+
+
+DROP PROCEDURE IF EXISTS compareContainedIncarcerations;
+CREATE PROCEDURE compareContainedIncarcerations(IN p_id INT, IN p_jail_id INT, IN p_name VARCHAR(200), IN p_ffd DATE, IN p_lfd DATE)
 BEGIN
 	DECLARE done INT DEFAULT FALSE;
 	DECLARE inc_id INT;
@@ -18,8 +53,7 @@ BEGIN
 		WHERE (id <> p_id) AND (name = p_name) AND (jail_id = p_jail_id)
 		AND (
 			(p_ffd BETWEEN first_found_date AND last_found_date)
---			AND		-- only duplicated BETWEEN
-			OR		-- ANY duplicates
+			AND		-- only duplicated BETWEEN
 			(p_lfd BETWEEN first_found_date AND last_found_date)
 		)
 		;
@@ -31,12 +65,11 @@ BEGIN
 			LEAVE read_loop;
 		END IF;
 		SELECT '------------------------------------------------------------------' AS '';
---		DELETE FROM incarcerations WHERE id = p_id;
-		SELECT concat('Found Duplicate: (Jail ID: ', p_jail_id , ') ', p_id, ": ", p_name, " | ", p_ffd, " - ", p_lfd) AS '';
-		SELECT concat('Inside of Range: (Jail ID: ', p_jail_id , ') ', inc_id, ": ", inc_name, " | ", inc_ffd, " - ", inc_lfd) AS '';
+		DELETE FROM incarcerations WHERE id = p_id;
+		SELECT concat('Deleting: (Jail ID: ', p_jail_id , ') ', p_id, ": ", p_name, " | ", p_ffd, " - ", p_lfd) AS '';
+		SELECT concat('b/c inside of: (Jail ID: ', p_jail_id , ') ', inc_id, ": ", inc_name, " | ", inc_ffd, " - ", inc_lfd) AS '';
 	END LOOP;
 	CLOSE cursorComps;
-
 END//
 
 DROP PROCEDURE IF EXISTS checkIncarcerations;
@@ -59,7 +92,8 @@ BEGIN
 		IF done THEN
 			LEAVE read_loop;
 		END IF;
-		call compareIncarcerations(inc_id, p_jail_id, inc_name, inc_ffd, inc_lfd);
+		call compareContainedIncarcerations(inc_id, p_jail_id, inc_name, inc_ffd, inc_lfd);
+		call compareOverlappingIncarcerations(inc_id, p_jail_id, inc_name, inc_ffd, inc_lfd);
 	END LOOP;
 	CLOSE cursorIncs;
 END//
@@ -98,9 +132,9 @@ END//
 SELECT '-----------------------------------------------------' AS '';
 SELECT concat('BEGIN: ', NOW()) AS '';
 SELECT '-----------------------------------------------------' AS '';
- call checkIncarcerations(19);	-- Mecklenburg
+-- call checkIncarcerations(19);	-- Mecklenburg
 -- call checkIncarcerations(29);	-- Alamance
--- call checkIncarcerations(31);	-- Cumberland
+ call checkIncarcerations(31);	-- Cumberland
 -- call runIncChecks();
 SELECT '-----------------------------------------------------' AS '';
 SELECT concat('END: ', NOW()) AS '';
