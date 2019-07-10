@@ -31,9 +31,10 @@ BEGIN
 		FROM incarcerations 
 		WHERE (name = p_name) AND (jail_id = j_id)
 			AND (
-				(age = p_age) OR (age = (p_age + 1))
-				OR
-				(dob = p_dob)
+				(age = p_age)
+				OR (age = (p_age + 1))
+				OR (dob = p_dob)
+				OR ((dob IS NULL) AND (age IS NULL))
 			)
 		ORDER BY last_found_date DESC
 		LIMIT 1
@@ -50,7 +51,8 @@ BEGIN
 			LEAVE read_loop;
 		END IF;
 		
-		IF (i_ffd <= p_date) AND (i_lfd >= p_date) THEN
+--		IF (i_ffd <= p_date) AND (i_lfd >= p_date) THEN
+		IF (p_date BETWEEN i_ffd AND i_lfd) THEN
 			SET i_found = TRUE;
 			UPDATE jail_records SET incarceration_id = i_id WHERE (name = p_name) AND (jail_id = j_id) AND (record_date = p_date);
 
@@ -99,7 +101,7 @@ BEGIN
 		UPDATE jail_records 
 			SET incarceration_id = LAST_INSERT_ID()
 			WHERE id = (name = p_name) AND (jail_id = j_id) AND (record_date = p_date);
---		SELECT concat('    +----> CREATING: ', LAST_INSERT_ID(), ': ', p_name, ' (last_found_date: ', p_date, ')', " | ", p_date) as '';
+		SELECT concat('    +----> CREATING: ', LAST_INSERT_ID(), ': ', p_name, ' (last_found_date: ', p_date, ')', " | ", p_date) as '';
 	END IF;
 	
 END//
@@ -129,11 +131,11 @@ BEGIN
 	DECLARE r_date DATE;
 	DECLARE cursorRecords CURSOR FOR 
 		SELECT name, record_date
-			, dob, age, sex, height, race
-			, confined_date, release_date, non_court, address, days_in_jail, scrape_id
+			, dob, age, sex, race
+			, height, confined_date, release_date, non_court, address, days_in_jail, scrape_id
 		FROM jail_records
 		WHERE (jail_id = j_id)
-		AND (incarceration_id is null)
+--		AND (incarceration_id is null)
 		AND (record_date >= mindate)
 		GROUP BY name, record_date
 			, dob, age, sex, height, race
@@ -150,7 +152,7 @@ BEGIN
 		IF done THEN
 			LEAVE read_loop;
 		END IF;
-			SELECT concat('  Processing RECORD: ', r_name, ' (', r_date, ')') AS '';
+--			SELECT concat('  Processing RECORD: ', r_name, ' (', r_date, ')') AS '';
 		call handleJailRecord(j_id, r_name, r_date
 				, r_dob, r_age, r_sex, r_height, r_race
 				, r_confined_date, r_release_date, r_non_court, r_address, r_days_in_jail, r_scrape_id
@@ -177,7 +179,7 @@ BEGIN
 		IF done THEN
 			LEAVE read_loop;
 		END IF;
-			SELECT concat('Processing JAIL: ', j_county) AS '';
+--			SELECT concat('Processing JAIL: ', j_county) AS '';
 		call processJailRecords(mindate, j_id);
 	END LOOP;
 	CLOSE cursorJails;
@@ -197,7 +199,11 @@ END//
 	SELECT '-----------------------------------------------------' AS '';
 	SELECT concat('BEGIN: ', NOW()) AS '';
 	SELECT '-----------------------------------------------------' AS '';
- call processJailRecords('2018-01-01', 1);
+ call processJailRecords('2018-06-01', 19);	-- Meck
+-- call processJailRecords('2018-06-01', 29); -- Alamance
+-- call processJailRecords('2018-06-01', 31); -- Cumberland
+
+-- call processJailRecords('2019-06-01', 31);
 -- call processJailRecords('2019-04-01', 1); -- anson
 -- call processJailRecords('2018-01-01', 11); -- durham
 -- call processJailRecords('2018-01-01', 13); -- guilford

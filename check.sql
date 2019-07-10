@@ -133,8 +133,8 @@ SELECT '-----------------------------------------------------' AS '';
 SELECT concat('BEGIN: ', NOW()) AS '';
 SELECT '-----------------------------------------------------' AS '';
 -- call checkIncarcerations(19);	-- Mecklenburg
--- call checkIncarcerations(29);	-- Alamance
- call checkIncarcerations(31);	-- Cumberland
+ call checkIncarcerations(29);	-- Alamance
+-- call checkIncarcerations(31);	-- Cumberland
 -- call runIncChecks();
 SELECT '-----------------------------------------------------' AS '';
 SELECT concat('END: ', NOW()) AS '';
