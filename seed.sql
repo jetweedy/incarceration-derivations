@@ -2,6 +2,9 @@
 use datatest;
 -- ---------------------------------------------------
 
+DROP TABLE IF EXISTS imputed_dates;
+CREATE TABLE IF NOT EXISTS imputed_dates (id int not null auto_increment primary key , incarceration_id int, imputed_date date);
+
  drop table if exists jails;
  create table IF NOT EXISTS jails (id int, county varchar(20));
  INSERT INTO jails (id, county) VALUES (1, 'anson');

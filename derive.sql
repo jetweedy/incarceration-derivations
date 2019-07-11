@@ -18,6 +18,8 @@ CREATE PROCEDURE handleJailRecord(IN j_id INT, IN p_name varchar(200), IN p_date
 	, IN p_days_in_jail INT, IN p_scrape_id INT
 )
 BEGIN
+
+	DECLARE error_found INT DEFAULT FALSE;
 	DECLARE done INT DEFAULT FALSE;
 	DECLARE i_found BOOLEAN DEFAULT FALSE;
 	DECLARE i_id INT;
@@ -40,7 +42,9 @@ BEGIN
 		LIMIT 1
 		;
 
-	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done= TRUE;
+	DECLARE CONTINUE HANDLER FOR 1366 SELECT 'Error inserting integer value.';
+--	DECLARE CONTINUE HANDLER FOR SQLEXCEPTION SET error_found = TRUE;
 
 	-- try imputing / finding
 	SET done = FALSE;
@@ -110,6 +114,7 @@ END//
 DROP PROCEDURE IF EXISTS processJailRecords;
 CREATE PROCEDURE processJailRecords(IN mindate DATE, IN j_id INT)
 BEGIN
+	DECLARE error_found INT DEFAULT FALSE;
 	DECLARE done INT DEFAULT FALSE;
 	DECLARE r_id INT;
 
@@ -131,8 +136,8 @@ BEGIN
 	DECLARE r_date DATE;
 	DECLARE cursorRecords CURSOR FOR 
 		SELECT name, record_date
-			, dob, age, sex, race
-			, height, confined_date, release_date, non_court, address, days_in_jail, scrape_id
+			, dob, age, sex, height, race
+			, confined_date, release_date, non_court, address, days_in_jail, scrape_id
 		FROM jail_records
 		WHERE (jail_id = j_id)
 --		AND (incarceration_id is null)
@@ -142,7 +147,11 @@ BEGIN
 			, confined_date, release_date, non_court, address, days_in_jail, scrape_id
 		order by name, record_date
 		;
+
 	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done= TRUE;
+	DECLARE CONTINUE HANDLER FOR 1366 SELECT 'Error inserting integer value.';
+--	DECLARE CONTINUE HANDLER FOR SQLEXCEPTION SET error_found = TRUE;
+
 	OPEN cursorRecords;
 	read_loop: LOOP
 		FETCH cursorRecords INTO r_name, r_date
@@ -199,8 +208,8 @@ END//
 	SELECT '-----------------------------------------------------' AS '';
 	SELECT concat('BEGIN: ', NOW()) AS '';
 	SELECT '-----------------------------------------------------' AS '';
- call processJailRecords('2018-06-01', 19);	-- Meck
--- call processJailRecords('2018-06-01', 29); -- Alamance
+-- call processJailRecords('2018-06-01', 19);	-- Meck
+ call processJailRecords('2018-06-01', 29); -- Alamance
 -- call processJailRecords('2018-06-01', 31); -- Cumberland
 
 -- call processJailRecords('2019-06-01', 31);
