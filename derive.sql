@@ -8,9 +8,14 @@ use datatest;
 -- innodb_lock_wait_timeout=500
 -- 
 
+-- DROP PROCEDURE handleJailRecord;
+-- DROP PROCEDURE processJails;
+-- DROP PROCEDURE processJailRecords;
+-- show procedure status;
+
+
 DELIMITER //
 
-DROP PROCEDURE IF EXISTS handleJailRecord;
 CREATE PROCEDURE handleJailRecord(IN j_id INT, IN p_name varchar(200), IN p_date DATE
 	, IN p_dob DATE, IN p_age INT, IN p_sex VARCHAR(255), IN p_height INT, IN p_race VARCHAR(255)
 	, IN p_confined_date VARCHAR(255), IN p_release_date VARCHAR(255)
@@ -111,7 +116,6 @@ BEGIN
 END//
 
 
-DROP PROCEDURE IF EXISTS processJailRecords;
 CREATE PROCEDURE processJailRecords(IN mindate DATE, IN j_id INT)
 BEGIN
 	DECLARE error_found INT DEFAULT FALSE;
@@ -170,7 +174,6 @@ BEGIN
 	CLOSE cursorRecords;
 END//
 
-DROP PROCEDURE IF EXISTS processJails;
 CREATE PROCEDURE processJails(IN mindate DATE)
 BEGIN
 	DECLARE done INT DEFAULT FALSE;
@@ -209,7 +212,7 @@ END//
 	SELECT concat('BEGIN: ', NOW()) AS '';
 	SELECT '-----------------------------------------------------' AS '';
 -- call processJailRecords('2018-06-01', 19);	-- Meck
- call processJailRecords('2018-06-01', 29); -- Alamance
+-- call processJailRecords('2018-06-01', 29); -- Alamance
 -- call processJailRecords('2018-06-01', 31); -- Cumberland
 
 -- call processJailRecords('2019-06-01', 31);

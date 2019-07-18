@@ -1,10 +1,16 @@
 -- ---------------------------------------------------
-use datatest;
+-- use datatest;
 -- ---------------------------------------------------
+
+-- DROP PROCEDURE IF EXISTS compareOverlappingIncarcerations;
+-- DROP PROCEDURE IF EXISTS compareContainedIncarcerations;
+-- DROP PROCEDURE IF EXISTS checkIncarcerations;
+-- DROP PROCEDURE IF EXISTS runIncChecks;
+-- show procedure status;
+
 
 DELIMITER //
 
-DROP PROCEDURE IF EXISTS compareOverlappingIncarcerations;
 CREATE PROCEDURE compareOverlappingIncarcerations(IN p_id INT, IN p_jail_id INT, IN p_name VARCHAR(200), IN p_ffd DATE, IN p_lfd DATE)
 BEGIN
 	DECLARE done INT DEFAULT FALSE;
@@ -39,7 +45,6 @@ BEGIN
 END//
 
 
-DROP PROCEDURE IF EXISTS compareContainedIncarcerations;
 CREATE PROCEDURE compareContainedIncarcerations(IN p_id INT, IN p_jail_id INT, IN p_name VARCHAR(200), IN p_ffd DATE, IN p_lfd DATE)
 BEGIN
 	DECLARE done INT DEFAULT FALSE;
@@ -72,7 +77,6 @@ BEGIN
 	CLOSE cursorComps;
 END//
 
-DROP PROCEDURE IF EXISTS checkIncarcerations;
 CREATE PROCEDURE checkIncarcerations(IN p_jail_id INT)
 BEGIN
 	DECLARE done INT DEFAULT FALSE;
@@ -100,7 +104,6 @@ END//
 
 
 
-DROP PROCEDURE IF EXISTS runIncChecks;
 CREATE PROCEDURE runIncChecks()
 BEGIN
 	DECLARE done INT DEFAULT FALSE;
@@ -133,7 +136,7 @@ SELECT '-----------------------------------------------------' AS '';
 SELECT concat('BEGIN: ', NOW()) AS '';
 SELECT '-----------------------------------------------------' AS '';
 -- call checkIncarcerations(19);	-- Mecklenburg
- call checkIncarcerations(29);	-- Alamance
+-- call checkIncarcerations(1);	-- Alamance
 -- call checkIncarcerations(31);	-- Cumberland
 -- call runIncChecks();
 SELECT '-----------------------------------------------------' AS '';
