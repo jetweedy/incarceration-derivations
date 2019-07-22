@@ -8,9 +8,9 @@ use datatest;
 -- innodb_lock_wait_timeout=500
 -- 
 
--- DROP PROCEDURE handleJailRecord;
--- DROP PROCEDURE processJails;
--- DROP PROCEDURE processJailRecords;
+ DROP PROCEDURE handleJailRecord;
+ DROP PROCEDURE processJails;
+ DROP PROCEDURE processJailRecords;
 -- show procedure status;
 
 
@@ -49,7 +49,7 @@ BEGIN
 
 	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done= TRUE;
 	DECLARE CONTINUE HANDLER FOR 1366 SELECT 'Error inserting integer value.';
---	DECLARE CONTINUE HANDLER FOR SQLEXCEPTION SET error_found = TRUE;
+	-- DECLARE CONTINUE HANDLER FOR SQLEXCEPTION SET error_found = TRUE;
 
 	-- try imputing / finding
 	SET done = FALSE;
@@ -60,7 +60,7 @@ BEGIN
 			LEAVE read_loop;
 		END IF;
 		
---		IF (i_ffd <= p_date) AND (i_lfd >= p_date) THEN
+		-- IF (i_ffd <= p_date) AND (i_lfd >= p_date) THEN
 		IF (p_date BETWEEN i_ffd AND i_lfd) THEN
 			SET i_found = TRUE;
 			UPDATE jail_records SET incarceration_id = i_id WHERE (name = p_name) AND (jail_id = j_id) AND (record_date = p_date);
@@ -92,7 +92,7 @@ BEGIN
 						LEAVE each_loop;
 					END IF;
 					INSERT INTO imputed_dates (incarceration_id, imputed_date) VALUES (i_id, i_lastdate);
---					SELECT concat('    o----> IMPUTING: ', p_name, ' (date: ', i_lastdate, ')') as '';
+					-- SELECT concat('    o----> IMPUTING: ', p_name, ' (date: ', i_lastdate, ')') as '';
 				END LOOP;
 
 		END IF;
@@ -141,20 +141,20 @@ BEGIN
 	DECLARE cursorRecords CURSOR FOR 
 		SELECT name, record_date
 			, dob, age, sex, height, race
-			, confined_date, release_date, non_court, address, days_in_jail, scrape_id
+			, confined_date, release_date, non_court, address, MAX(days_in_jail) as days_in_jail, scrape_id
 		FROM jail_records
 		WHERE (jail_id = j_id)
---		AND (incarceration_id is null)
+		-- AND (incarceration_id is null)
 		AND (record_date >= mindate)
 		GROUP BY name, record_date
 			, dob, age, sex, height, race
-			, confined_date, release_date, non_court, address, days_in_jail, scrape_id
+			, confined_date, release_date, non_court, address, scrape_id
 		order by name, record_date
 		;
 
 	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done= TRUE;
 	DECLARE CONTINUE HANDLER FOR 1366 SELECT 'Error inserting integer value.';
---	DECLARE CONTINUE HANDLER FOR SQLEXCEPTION SET error_found = TRUE;
+	-- DECLARE CONTINUE HANDLER FOR SQLEXCEPTION SET error_found = TRUE;
 
 	OPEN cursorRecords;
 	read_loop: LOOP
@@ -165,7 +165,7 @@ BEGIN
 		IF done THEN
 			LEAVE read_loop;
 		END IF;
---			SELECT concat('  Processing RECORD: ', r_name, ' (', r_date, ')') AS '';
+		-- SELECT concat('  Processing RECORD: ', r_name, ' (', r_date, ')') AS '';
 		call handleJailRecord(j_id, r_name, r_date
 				, r_dob, r_age, r_sex, r_height, r_race
 				, r_confined_date, r_release_date, r_non_court, r_address, r_days_in_jail, r_scrape_id
@@ -191,7 +191,7 @@ BEGIN
 		IF done THEN
 			LEAVE read_loop;
 		END IF;
---			SELECT concat('Processing JAIL: ', j_county) AS '';
+		-- SELECT concat('Processing JAIL: ', j_county) AS '';
 		call processJailRecords(mindate, j_id);
 	END LOOP;
 	CLOSE cursorJails;
@@ -206,17 +206,15 @@ END//
 
 
 
-
-
 	SELECT '-----------------------------------------------------' AS '';
 	SELECT concat('BEGIN: ', NOW()) AS '';
 	SELECT '-----------------------------------------------------' AS '';
--- call processJailRecords('2018-06-01', 19);	-- Meck
+-- call processJailRecords('2018-01-01', 19);	-- Meck
 -- call processJailRecords('2018-06-01', 29); -- Alamance
 -- call processJailRecords('2018-06-01', 31); -- Cumberland
 
 -- call processJailRecords('2019-06-01', 31);
--- call processJailRecords('2019-04-01', 1); -- anson
+ call processJailRecords('2018-01-01', 1); -- anson
 -- call processJailRecords('2018-01-01', 11); -- durham
 -- call processJailRecords('2018-01-01', 13); -- guilford
 -- call processJailRecords('2018-01-01', 12); -- forsyth
