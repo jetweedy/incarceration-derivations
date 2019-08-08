@@ -24,7 +24,9 @@ BEGIN
 		SELECT id, name, age, dob, first_found_date, last_found_date 
 		FROM incarcerations
 		WHERE (id <> p_id) AND (name = p_name) AND (jail_id = p_jail_id)
-			AND ((age = p_age) OR (dob = p_dob))
+			AND ((age = p_age) OR (dob = p_dob) 
+				OR ( (age IS NULL) AND (dob IS NULL) )
+			)
 		AND (
 			(p_ffd < first_found_date)
 			AND
@@ -61,7 +63,9 @@ BEGIN
 		SELECT id, name, age, dob, first_found_date, last_found_date 
 		FROM incarcerations
 		WHERE (id <> p_id) AND (name = p_name) AND (jail_id = p_jail_id)
-			AND ((age = p_age) OR (dob = p_dob))
+			AND ((age = p_age) OR (dob = p_dob) 
+				OR ( (age IS NULL) AND (dob IS NULL) )
+			)
 		AND (
 			(p_ffd BETWEEN first_found_date AND last_found_date)
 			AND		-- only duplicated BETWEEN
