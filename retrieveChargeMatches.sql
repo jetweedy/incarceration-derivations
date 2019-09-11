@@ -4,12 +4,11 @@ use datatest;
 
 
 DROP PROCEDURE IF EXISTS retrieveIncStuff;
-DROP PROCEDURE IF EXISTS retrieveMatchingCourtCase;
-DROP PROCEDURE IF EXISTS retrieveMatchingPrison;
+DROP PROCEDURE IF EXISTS retrieveChargeMatches;
 
 DELIMITER //
 
-CREATE PROCEDURE retrieveMatchingPrison(IN i_id INT, IN p_name varchar(200), IN p_age INT, IN p_dob DATE, IN p_jail_id INT)
+CREATE PROCEDURE retrieveChargeMatches(IN i_id INT, IN p_name varchar(200), IN p_age INT, IN p_dob DATE, IN p_jail_id INT)
 BEGIN
 
 	DECLARE error_found INT DEFAULT FALSE;
@@ -50,49 +49,6 @@ BEGIN
 	CLOSE getMatchingPrison;
 
 END//
-
-CREATE PROCEDURE retrieveMatchingCourtCase(IN i_id INT, IN p_name varchar(200), IN p_age INT, IN p_dob DATE, IN p_jail_id INT)
-BEGIN
-
-	DECLARE error_found INT DEFAULT FALSE;
-	DECLARE done INT DEFAULT FALSE;
-	DECLARE i_found BOOLEAN DEFAULT FALSE;
-	DECLARE inc_court_case_id INT;
-	DECLARE inc_court_match_date DATE;
-	
-	DECLARE getMatchingCourtCase CURSOR FOR 
-		SELECT court_case_id, court_match_date
-		FROM incarcerations_backup
-		WHERE (court_case_id IS NOT NULL)
-			AND (name = p_name) 
-			AND (jail_id = p_jail_id)
-			AND (
-				((age = p_age) AND (age IS NOT NULL))
-				OR 
-				((dob = p_dob) AND (dob IS NOT NULL))
-			)
-		ORDER BY id
-		LIMIT 1
-		;
-	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done= TRUE;
-	DECLARE CONTINUE HANDLER FOR 1366 SELECT 'Error inserting integer value.';
-	SET done = FALSE;
-	OPEN getMatchingCourtCase;
-	read_loop: LOOP
-		FETCH getMatchingCourtCase INTO inc_court_case_id, inc_court_match_date;
-		IF done THEN
-			LEAVE read_loop;
-		END IF;		
-
-		SELECT p_name, p_age, p_dob, p_jail_id, inc_court_case_id, inc_court_match_date;
-		UPDATE incarcerations SET court_case_id = inc_court_case_id, court_match_date = inc_court_match_date WHERE id = i_id;
-		
-	END LOOP;
-	CLOSE getMatchingCourtCase;
-
-END//
-
-
 
 CREATE PROCEDURE retrieveIncStuff()
 BEGIN
