@@ -1,22 +1,6 @@
--- ---------------------------------------------------
-use datatest;
--- ---------------------------------------------------
-
--- UPDATE jail_records SET record_date = DATE(created_at) WHERE record_date is NULL;
--- DELETE FROM incarcerations;
--- UPDATE jail_records SET incarceration_id = NULL;
--- innodb_lock_wait_timeout=500
--- 
-
- DROP PROCEDURE handleJailRecord;
- DROP PROCEDURE processJails;
- DROP PROCEDURE processJailRecords;
--- show procedure status;
-
-
 DELIMITER //
 
-CREATE PROCEDURE handleJailRecord(IN j_id INT, IN p_name varchar(200), IN p_date DATE
+CREATE PROCEDURE handleJailRecord(IN jr_id INT, IN j_id INT, IN p_name varchar(200), IN p_date DATE
 	, IN p_dob DATE, IN p_age INT, IN p_sex VARCHAR(255), IN p_height INT, IN p_race VARCHAR(255)
 	, IN p_confined_date VARCHAR(255), IN p_release_date VARCHAR(255)
 	, IN p_non_court TINYINT, IN p_address VARCHAR(255)
@@ -38,11 +22,23 @@ BEGIN
 		FROM incarcerations 
 		WHERE (name = p_name) AND (jail_id = j_id)
 			AND (
-				(age = p_age)
-				OR (age = (p_age + 1))
+				(most_recent_age = p_age)
+				OR (most_recent_age = (p_age + 1))
+				OR (most_recent_age = (p_age - 1))
 				OR (dob = p_dob)
-				OR ((dob IS NULL) AND (age IS NULL))
+
+				OR ((p_dob IS NULL) AND (p_age IS NULL))
+
 			)
+			AND (
+				(p_date BETWEEN first_found_date AND last_found_date)
+                OR
+                (last_found_date = (p_date - INTERVAL 1 DAY))
+                OR
+                (first_found_date = (p_date + INTERVAL 1 DAY))
+                OR
+                (last_found_date > (p_date - INTERVAL 14 DAY) )
+            )
 		ORDER BY last_found_date DESC
 		LIMIT 1
 		;
@@ -63,12 +59,24 @@ BEGIN
 		-- IF (i_ffd <= p_date) AND (i_lfd >= p_date) THEN
 		IF (p_date BETWEEN i_ffd AND i_lfd) THEN
 			SET i_found = TRUE;
-			UPDATE jail_records SET incarceration_id = i_id WHERE (name = p_name) AND (jail_id = j_id) AND (record_date = p_date);
+			UPDATE jail_records SET incarceration_id = i_id WHERE id = jr_id;
+			-- SELECT concat('UPDATE jail_records SET incarceration_id = ',i_id,' WHERE id = ',jr_id) AS '';
 
 		ELSEIF (i_lfd = (p_date - INTERVAL 1 DAY)) THEN
 			SET i_found = TRUE;
-			UPDATE incarcerations SET last_found_date = p_date, updated_at = NOW() WHERE (id = i_id);
-			UPDATE jail_records SET incarceration_id = i_id WHERE (name = p_name) AND (jail_id = j_id);
+			UPDATE incarcerations SET last_found_date = p_date, most_recent_age = p_age, updated_at = NOW() WHERE (id = i_id);
+             SELECT concat('UPDATE INC ',i_id,' SET last_found_date = ',p_date) as '';
+			-- SELECT concat('UPDATE incarcerations SET last_found_date = ',p_date,' most_recent_age = ',p_age,' updated_at = ',NOW(),' WHERE id = ',i_id) AS '';
+			UPDATE jail_records SET incarceration_id = i_id WHERE id = jr_id;
+			-- SELECT concat('UPDATE jail_records SET incarceration_id = ',i_id,' WHERE id = ',jr_id) AS '';
+
+		ELSEIF (i_ffd = (p_date + INTERVAL 1 DAY)) THEN
+			SET i_found = TRUE;
+			UPDATE incarcerations SET first_found_date = p_date, updated_at = NOW() WHERE (id = i_id);	-- don't update most recent age, since it's later
+             SELECT concat('UPDATE INC ',i_id,' SET last_found_date = ',p_date) as '';
+			-- SELECT concat('UPDATE incarcerations SET last_found_date = ',p_date,' most_recent_age = ',p_age,' updated_at = ',NOW(),' WHERE id = ',i_id) AS '';
+			UPDATE jail_records SET incarceration_id = i_id WHERE id = jr_id;
+			-- SELECT concat('UPDATE jail_records SET incarceration_id = ',i_id,' WHERE id = ',jr_id) AS '';
 
 		ELSEIF 
 			(i_lfd > (p_date - INTERVAL 14 DAY) )
@@ -76,12 +84,15 @@ BEGIN
 			(NOT EXISTS(
 				SELECT id from jail_records
 				WHERE (jail_id = j_id)
-				AND (record_date > i_lfd) AND (record_date < p_date)
+				AND (record_date between (i_lfd + INTERVAL 1 DAY) AND p_date)
 				))
 			THEN
 				SET i_found = TRUE;
-				UPDATE jail_records SET incarceration_id = i_id WHERE (name = p_name) AND (jail_id = j_id) AND (record_date = p_date);
-				UPDATE incarcerations SET last_found_date = p_date, updated_at = NOW() WHERE (id = i_id);
+				UPDATE jail_records SET incarceration_id = i_id WHERE id = jr_id;
+				 SELECT concat('UPDATE INC ',i_id,' SET last_found_date = ',p_date) as '';
+				UPDATE incarcerations SET last_found_date = p_date, most_recent_age = p_age, updated_at = NOW() WHERE (id = i_id);
+				-- SELECT concat('UPDATE INC', i_id) as '';
+				-- SELECT concat('UPDATE incarcerations SET last_found_date = ',p_date,' most_recent_age = ',p_age,' updated_at = ',NOW(),' WHERE id = ',i_id) AS '';
 				SET i_lastdate = i_lfd;
 				each_loop: LOOP
 					IF (i_lastdate is NULL) THEN
@@ -102,15 +113,13 @@ BEGIN
 	IF NOT i_found THEN
 		INSERT INTO incarcerations (name, jail_id, first_found_date, last_found_date
 			, dob, age, sex, height, race, confined_date, release_date
-			, non_court, address, days_in_jail, most_recent_age, scrape_id, created_at, updated_at
+			, non_court, address, days_in_jail, most_recent_age, scrape_id, created_at, updated_at, jet_flag
 		) VALUES (p_name, j_id, p_date, p_date
 			, p_dob, p_age, p_sex, p_height, p_race, p_confined_date, p_release_date
-			, p_non_court, p_address, p_days_in_jail, p_age, p_scrape_id, NOW(), NOW()
+			, p_non_court, p_address, p_days_in_jail, p_age, p_scrape_id, NOW(), NOW(), 1
 		);
-		UPDATE jail_records 
-			SET incarceration_id = LAST_INSERT_ID()
-			WHERE id = (name = p_name) AND (jail_id = j_id) AND (record_date = p_date);
-		SELECT concat('    +----> CREATING: ', LAST_INSERT_ID(), ': ', p_name, ' (last_found_date: ', p_date, ')', " | ", p_date) as '';
+		UPDATE jail_records SET incarceration_id = LAST_INSERT_ID() WHERE id = jr_id;
+		 SELECT concat('    +----> CREATING: ', LAST_INSERT_ID(), ': ', p_name, ' (first_found_date: ', p_date, ')', ' (last_found_date: ', p_date, ')', " | ", p_date) as '';
 	END IF;
 	
 END//
@@ -139,16 +148,18 @@ BEGIN
 	DECLARE r_name VARCHAR(200);
 	DECLARE r_date DATE;
 	DECLARE cursorRecords CURSOR FOR 
-		SELECT name, record_date
+		SELECT id, name, record_date
 			, dob, age, sex, height, race
-			, confined_date, release_date, non_court, address, MAX(days_in_jail) as days_in_jail, scrape_id
+			, confined_date, release_date, non_court, address, days_in_jail, scrape_id
 		FROM jail_records
 		WHERE (jail_id = j_id)
-		-- AND (incarceration_id is null)
 		AND (record_date >= mindate)
-		GROUP BY name, record_date
-			, dob, age, sex, height, race
-			, confined_date, release_date, non_court, address, scrape_id
+        AND (record_date is not null)        
+		 -- AND (record_date > '2019-11-13')
+		 -- AND (record_date < '2019-11-14')
+         -- AND (name = 'SIMS,JORGE,QUIN') AND (jail_id = 25)
+		AND (incarceration_id is null)
+        AND (name is not null)
 		order by name, record_date
 		;
 
@@ -158,7 +169,7 @@ BEGIN
 
 	OPEN cursorRecords;
 	read_loop: LOOP
-		FETCH cursorRecords INTO r_name, r_date
+		FETCH cursorRecords INTO r_id, r_name, r_date
 			, r_dob, r_age, r_sex, r_height, r_race
 			, r_confined_date, r_release_date, r_non_court, r_address, r_days_in_jail, r_scrape_id
 			;
@@ -166,7 +177,7 @@ BEGIN
 			LEAVE read_loop;
 		END IF;
 		-- SELECT concat('  Processing RECORD: ', r_name, ' (', r_date, ')') AS '';
-		call handleJailRecord(j_id, r_name, r_date
+		call handleJailRecord(r_id, j_id, r_name, r_date
 				, r_dob, r_age, r_sex, r_height, r_race
 				, r_confined_date, r_release_date, r_non_court, r_address, r_days_in_jail, r_scrape_id
 			);
@@ -197,37 +208,6 @@ BEGIN
 	CLOSE cursorJails;
 END//
 
-
-
-
-
-
-
-
-
-
-	SELECT '-----------------------------------------------------' AS '';
-	SELECT concat('BEGIN: ', NOW()) AS '';
-	SELECT '-----------------------------------------------------' AS '';
--- call processJailRecords('2018-01-01', 19);	-- Meck
--- call processJailRecords('2018-06-01', 29); -- Alamance
--- call processJailRecords('2018-06-01', 31); -- Cumberland
-
--- call processJailRecords('2019-06-01', 31);
- call processJailRecords('2018-01-01', 1); -- anson
--- call processJailRecords('2018-01-01', 11); -- durham
--- call processJailRecords('2018-01-01', 13); -- guilford
--- call processJailRecords('2018-01-01', 12); -- forsyth
--- call processJailRecords('2018-01-01', 21); -- orange
--- call processJailRecords('2019-04-01', 25); -- wake
--- call processJailRecords('2018-01-01', 31);	-- cumberland
--- call processJails('2019-03-01');
--- SELECT * FROM jail_records ORDER BY name, created_at;
--- SELECT * FROM incarcerations ORDER BY name, first_found_date;
--- SELECT * FROM imputed_dates ORDER BY incarceration_id;
-	SELECT '-----------------------------------------------------' AS '';
-	SELECT concat('END: ', NOW()) AS '';
-	SELECT '-----------------------------------------------------' AS '';
 
 
 
